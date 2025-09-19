@@ -1,0 +1,87 @@
+---
+
+- name: Install Apache, PHP, MariaDB
+  apt:
+    name:
+      - apache2
+      - mariadb-server
+      - libapache2-mod-php
+      - php
+      - php-mysql
+      - php-xml
+      - php-mbstring
+      - php-curl
+      - php-zip
+      - php-gd
+      - unzip
+      - wget
+    state: present
+    update_cache: yes
+
+- name: Install pymysql (for mysql modules)
+  apt:
+    name: python3-pymysql
+    state: present
+
+- name: Create Mysql database
+  community.mysql.mysql_db:
+    name: "{{ mysql_nextcloud_db }}"
+    state: present
+    login_user: "{{ mysql_root_user }}"
+    login_password: "{{ mysql_root_password }}"
+
+- name: Create Mysql user
+  community.mysql.mysql_user:
+    name: "{{ mysql_nextcloud_user }}"
+    password: "{{ mysql_nextcloud_password }}"
+    priv: "{{ mysql_nextcloud_db }}.*:ALL"
+    host: "localhost"
+    login_user: "{{ mysql_root_user }}"
+    login_password: "{{ mysql_root_password }}"
+    state: present
+
+- name: Set folder permissions
+  file:
+    path: /var/www/nextcloud
+    owner: www-data
+    group: www-data
+    mode: '0750'
+    recurse: yes
+
+- name: Generate self-signed SSL cert
+  command: >
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048
+    -keyout /etc/ssl/private/nextcloud-selfsigned.key
+    -out /etc/ssl/certs/nextcloud-selfsigned.crt
+    -subj "/C=DZ/ST=data/L=data/O=Nextcloud/OU=IT/CN=derradji.local"
+
+- name: Ensure Apache listens only on 127.0.0.1:8080
+  blockinfile:
+    path: /etc/apache2/ports.conf
+    block: |
+      Listen 127.0.0.1:8080
+
+- name: Deploy Nextcloud config.php
+  template:
+    src: config.php.j2
+    dest: /var/www/nextcloud/config/config.php
+    owner: www-data
+    group: www-data
+    mode: '0640'
+
+
+- name: Deploy Apache VirtualHost for Nextcloud
+  template:
+    src: nextcloud.conf.j2
+    dest: /etc/apache2/sites-available/nextcloud.conf
+
+- name: Enable Nextcloud site
+  command: a2ensite nextcloud.conf
+
+- name: Enable Apache modules
+  command: a2enmod proxy_fcgi setenvif rewrite headers ssl env dir mime
+
+- name: Restart Apache
+  service:
+    name: apache2
+    state: restarted

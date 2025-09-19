@@ -1,0 +1,57 @@
+---
+# tasks file for backups
+
+- name: Ensure backup directory exists
+  file:
+    path: /opt/backups
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+
+- name: Backup database nextcloud
+  shell: |
+    mysqldump -u {{ mysql_nextcloud_user }} -p{{ mysql_nextcloud_password }}
+    {{ mysql_nextcloud_db }}
+    > /opt/backups/nextcloud_db_{{ ansible_date_time.date }}.sql
+  args:
+    creates: "/opt/backups/nextcloud_db_{{ ansible_date_time.date }}.sql"
+
+- name: Secure database backup file
+  file:
+    path: "/opt/backups/nextcloud_db_{{ ansible_date_time.date }}.sql"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Backup Nextcloud files
+  archive:
+    path:
+      - /var/www/nextcloud/config
+      - /var/www/nextcloud/data
+    dest: "/opt/backups/nextcloud_files_{{ ansible_date_time.date }}.tar.gz"
+    format: gz
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Schedule daily Nextcloud backup
+  cron:
+    name: "Daily Nextcloud Backup"
+    user: root
+    job: "/opt/backups/backup_nextcloud.sh >> /var/log/nextcloud_backup.log 2>&1"
+    minute: 0
+    hour: 2
+
+- name: Find old backups (older than 7 days)
+  find:
+    paths: /opt/backups
+    age: 7d
+    recurse: yes
+  register: old_backups
+
+- name: Delete old backups
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_backups.files }}"

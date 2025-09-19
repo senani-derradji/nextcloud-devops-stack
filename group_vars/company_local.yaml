@@ -1,0 +1,15 @@
+---
+mysql_root_user: root
+mysql_root_password: root
+mysql_nextcloud_db: nextcloud
+mysql_nextcloud_user: nextclouduser
+mysql_nextcloud_password: derradji
+
+trusted_domains:
+  - "{{ ansible_host }}"
+  - "localhost"
+  - "127.0.0.1"
+  - "company.local"
+
+password_salt: "aufBIP2siIpuhcqGmKhOnofQeefcF8"
+secret: "Kdi9sjYKpN3BI7cXqRyY9pR3Y6wqTBsyPS3y9C9loF5NCyjl"

@@ -1,0 +1,21 @@
+<?php
+$CONFIG = array (
+  'instanceid' => 'oco6jgbyhxtz',
+  'passwordsalt' => '{{ password_salt | default("changeme") }}',
+  'secret' => '{{ secret | default("supersecret") }}',
+  'trusted_domains' =>
+  array (
+{% for domain in trusted_domains %}
+    {{ loop.index0 }} => '{{ domain }}',
+{% endfor %}
+  ),
+  'datadirectory' => '/var/www/nextcloud/data',
+  'dbtype' => 'mysql',
+  'version' => '31.0.9.1',
+  'overwrite.cli.url' => 'https://{{ ansible_host }}',
+  'dbname' => '{{ mysql_nextcloud_db }}',
+  'dbhost' => 'localhost',
+  'dbuser' => '{{ mysql_nextcloud_user }}',
+  'dbpassword' => '{{ mysql_nextcloud_password }}',
+  'installed' => true,
+);

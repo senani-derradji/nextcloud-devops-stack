@@ -1,0 +1,10 @@
+---
+- name: Next Cloud Installation
+  hosts: all
+  gather_facts: yes
+  become: yes
+  roles:
+    - NextCloud
+    - nginx
+    - sec # Security Role
+    # - backups

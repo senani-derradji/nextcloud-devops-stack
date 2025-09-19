@@ -1,0 +1,38 @@
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: Remove default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Deploy Nginx reverse proxy config
+  template:
+    src: nextcloud_nginx.conf.j2
+    dest: /etc/nginx/sites-available/nextcloud
+
+- name: Enable Nextcloud site
+  file:
+    src: /etc/nginx/sites-available/nextcloud
+    dest: /etc/nginx/sites-enabled/nextcloud
+    state: link
+    force: yes
+
+- name: Add proxy_cache_path to nginx.conf
+  lineinfile:
+    path: /etc/nginx/nginx.conf
+    insertafter: 'http {'
+    line: '    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=nextcloud_cache:10m max_size=1g inactive=60m use_temp_path=off;'
+
+- name: Test nginx config
+  command: nginx -t
+  register: nginx_test
+  failed_when: nginx_test.rc != 0
+
+- name: Reload nginx
+  service:
+    name: nginx
+    state: reloaded
